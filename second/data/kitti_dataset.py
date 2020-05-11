@@ -87,7 +87,7 @@ class KittiDataset(Dataset):
                 anno["alpha"].append(
                     -np.arctan2(-box3d_lidar[j, 1], box3d_lidar[j, 0]) +
                     box3d_camera[j, 6])
-                anno["dimensions"].append(box3d_camera[j, 3:6])
+                anno["dimensions"].append([*box3d_camera[j, 4:6], box3d_camera[j, 3]])
                 anno["location"].append(box3d_camera[j, :3])
                 anno["rotation_y"].append(box3d_camera[j, 6])
 

@@ -7,6 +7,7 @@ from google.protobuf import text_format
 from second.data.preprocess import merge_second_batch, prep_pointcloud
 from second.protos import pipeline_pb2
 import second.data.kitti_common as kitti
+from second.data.kitti_dataset import convert_to_kitti_info_version2
 
 class InferenceContext:
     def __init__(self):
@@ -23,7 +24,7 @@ class InferenceContext:
         assert self.voxel_generator is not None
         assert self.config is not None
         assert self.built is True
-        kitti.convert_to_kitti_info_version2(info)
+        convert_to_kitti_info_version2(info)
         pc_info = info["point_cloud"]
         image_info = info["image"]
         calib = info["calib"]

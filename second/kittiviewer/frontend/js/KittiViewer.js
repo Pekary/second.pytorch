@@ -13,6 +13,9 @@ var KittiViewer = function (pointCloud, logger, imageCanvas) {
     this.dtBoxes = [];
     this.gtBboxes = [];
     this.dtBboxes = [];
+
+    this.boxes_3d_p2 = [];
+
     this.pointCloud = pointCloud;
     this.maxPoints = 500000;
     this.pointVertices = new Float32Array(this.maxPoints * 3);
@@ -138,6 +141,8 @@ KittiViewer.prototype = {
                 var dims = response["dt_dims"];
                 var rots = response["dt_rots"];
                 var scores = response["dt_scores"];
+                self.boxes_3d_p2 = response["dt_boxes_3d_p2"];
+                self.logger.message("========= boxes_3d_p2");
                 self.dtBboxes = response["dt_bbox"];
                 for (var i = 0; i < self.dtBoxes.length; ++i) {
                     for (var j = self.dtBoxes[i].children.length - 1; j >= 0; j--) {
@@ -205,6 +210,7 @@ KittiViewer.prototype = {
         this.dtBoxes = [];
         this.gtBboxes = [];
         this.dtBboxes = [];
+        this.boxes_3d_p2 = [];
         // this.image = '';
     },
     _plot: function (image_idx) {
@@ -335,6 +341,49 @@ KittiViewer.prototype = {
             console.log("draw image");
             ctx.drawImage(image, 0, 0, w, h);
             let x1, y1, x2, y2;
+            // ctx.beginPath();
+            // ctx.moveTo(0,0);
+            // ctx.lineTo(300,150);
+            // ctx.strokeStyle = "red";
+            // ctx.lineWidth = 10;
+            // ctx.stroke();
+
+            let hratio = h / image.height;
+            let wratio = w / image.width;
+
+            self.logger.message(h + " : " + image.height);
+
+            for (var i = 0; i < self.boxes_3d_p2.length; ++i) {
+
+                let box_a = self.boxes_3d_p2[i].slice(0, 4);
+                let box_b = self.boxes_3d_p2[i].slice(4);
+                self.logger.message(self.boxes_3d_p2[i].length + "coord: " + box_a[0][0]*wratio);
+                ctx.beginPath();
+                let yoffset = 10;
+                ctx.moveTo(box_a[0][0] * wratio, (box_a[0][1]+yoffset) * hratio);
+                for (var j = 0; j < box_a.length; ++j) {
+                    let next = (j + 1) % box_a.length;
+                    ctx.lineTo(box_a[next][0] * wratio, (box_a[next][1] + yoffset) * hratio);
+                }
+                ctx.moveTo(box_b[0][0] * wratio, (box_b[0][1] + yoffset) * hratio);
+                for (var j = 0; j < box_b.length; ++j) {
+                    let next = (j + 1) % box_b.length;
+                    ctx.lineTo(box_b[next][0] * wratio, (box_b[next][1]+yoffset) * hratio);
+                }
+
+                // ctx.moveTo(box_b[0][0] * wratio, box_b[0][1] * wratio);
+                for (var j = 0; j < box_b.length; ++j) {
+                    // let next = (j + 1) % box_b.length;
+                    ctx.moveTo(box_a[j][0] * wratio, (box_a[j][1] + yoffset) * hratio);
+                    ctx.lineTo(box_b[j][0] * wratio, (box_b[j][1] + yoffset) * hratio);
+                }
+
+
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "red";
+                ctx.stroke();
+                self.logger.message("Done======");
+            }
             /*
             for (var i = 0; i < self.gtBboxes.length; ++i){
                 ctx.beginPath();

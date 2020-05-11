@@ -34,12 +34,14 @@ import second.core.preprocess as prep
 import second.kittiviewer.control_panel as panel
 from second.core.anchor_generator import AnchorGeneratorStride
 from second.core.box_coders import GroundBox3dCoder
-from second.core.point_cloud.point_cloud_ops import points_to_voxel
+# from second.core.point_cloud.point_cloud_ops import points_to_voxel
+from spconv.utils import points_to_voxel
 from second.core.region_similarity import (
     DistanceSimilarity, NearestIouSimilarity, RotateIouSimilarity)
-from second.core.sample_ops import (
-    sample_from_database_v2, sample_from_database_v3, sample_from_database_v4,
-    DataBaseSamplerV2)
+# from second.core.sample_ops import (
+#     sample_from_database_v2, sample_from_database_v3, sample_from_database_v4,
+#     DataBaseSamplerV2)
+from second.core.sample_ops import DataBaseSamplerV2
 from second.core.target_assigner import TargetAssigner
 from second.data import kitti_common as kitti
 from second.kittiviewer.glwidget import KittiGLViewWidget

@@ -25,6 +25,7 @@ from second.pytorch.builder import (box_coder_builder, input_reader_builder,
                                     lr_scheduler_builder, optimizer_builder,
                                     second_builder)
 from second.pytorch.train import build_network, example_convert_to_torch
+import second.core.box_np_ops as box_np_ops
 
 app = Flask("second")
 CORS(app)
@@ -203,11 +204,39 @@ def inference_by_idx():
         example["coordinates"], ((0, 0), (1, 0)),
         mode='constant',
         constant_values=0)
+
+
+
+    print(example.keys())
     # don't forget to add newaxis for anchors
     example["anchors"] = example["anchors"][np.newaxis, ...]
     example_torch = example_convert_to_torch(example, device=BACKEND.device)
     pred = BACKEND.net(example_torch)[0]
     box3d = pred["box3d_lidar"].detach().cpu().numpy()
+
+    # get 3d bbox in image
+    tmp_box3d = np.copy(box3d)
+    tmp_box3d[:, 2] -=  tmp_box3d[:, 5] / 2
+
+    calib = example["calib"]
+    # print(type(calib), calib.keys())
+    rect = calib['rect']
+    P2 = calib['P2']
+    Trv2c = calib['Trv2c']
+
+    gt_boxes_camera = box_np_ops.box_lidar_to_camera(
+        tmp_box3d, rect, Trv2c)
+    boxes_3d = box_np_ops.center_to_corner_box3d(gt_boxes_camera[:, :3],
+                                                 gt_boxes_camera[:, 3:6],
+                                                 gt_boxes_camera[:, 6],
+                                                 origin=[0.5, 1.0, 0.5],
+                                                 axis=1)
+    boxes_3d = boxes_3d.reshape((-1, 3))
+    boxes_3d_p2 = box_np_ops.project_to_image(boxes_3d, P2)
+    boxes_3d_p2 = boxes_3d_p2.reshape([-1, 8, 2])
+
+    response["dt_boxes_3d_p2"] = boxes_3d_p2.tolist()
+
     locs = box3d[:, :3]
     dims = box3d[:, 3:6]
     rots = np.concatenate([np.zeros([locs.shape[0], 2], dtype=np.float32), -box3d[:, 6:7]], axis=1)

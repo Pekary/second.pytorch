@@ -544,6 +544,78 @@ def evaluate(config_path,
             print("Evaluation {}".format(k))
             print(v)
 
+def predict_to_kitti_label(net,
+                          example,
+                          class_names,
+                          center_limit_range=None,
+                          lidar_input=False):
+    predictions_dicts = net(example)
+    limit_range = None
+    if center_limit_range is not None:
+        limit_range = np.array(center_limit_range)
+    annos = []
+    for i, preds_dict in enumerate(predictions_dicts):
+        box3d_lidar = preds_dict["box3d_lidar"].detach().cpu().numpy()
+        box3d_camera = None
+        scores = preds_dict["scores"].detach().cpu().numpy()
+        label_preds = preds_dict["label_preds"].detach().cpu().numpy()
+        if "box3d_camera" in preds_dict:
+            box3d_camera = preds_dict["box3d_camera"].detach().cpu().numpy()
+        bbox = None
+        if "bbox" in preds_dict:
+            bbox = preds_dict["bbox"].detach().cpu().numpy()
+        anno = kitti.get_start_result_anno()
+        num_example = 0
+        for j in range(box3d_lidar.shape[0]):
+            if limit_range is not None:
+                if (np.any(box3d_lidar[j, :3] < limit_range[:3])
+                        or np.any(box3d_lidar[j, :3] > limit_range[3:])):
+                    continue
+            if "bbox" in preds_dict:
+                assert "image_shape" in preds_dict["metadata"]["image"]
+                image_shape = preds_dict["metadata"]["image"]["image_shape"]
+                if bbox[j, 0] > image_shape[1] or bbox[j, 1] > image_shape[0]:
+                    continue
+                if bbox[j, 2] < 0 or bbox[j, 3] < 0:
+                    continue
+                bbox[j, 2:] = np.minimum(bbox[j, 2:], image_shape[::-1])
+                bbox[j, :2] = np.maximum(bbox[j, :2], [0, 0])
+                anno["bbox"].append(bbox[j])
+                # convert center format to kitti format
+                # box3d_lidar[j, 2] -= box3d_lidar[j, 5] / 2
+                anno["alpha"].append(-np.arctan2(-box3d_lidar[j, 1], box3d_lidar[j, 0]) +
+                                    box3d_camera[j, 6])
+                anno["dimensions"].append(box3d_camera[j, 3:6])
+                anno["location"].append(box3d_camera[j, :3])
+                anno["rotation_y"].append(box3d_camera[j, 6])
+            else:
+                # bbox's height must higher than 25, otherwise filtered during eval
+                anno["bbox"].append(np.array([0, 0, 50, 50]))
+                # note that if you use raw lidar data to eval,
+                # you will get strange performance because
+                # in standard KITTI eval, instance with small bbox height
+                # will be filtered. but it is impossible to filter
+                # boxes when using raw data.
+                anno["alpha"].append(0.0)
+                anno["dimensions"].append(box3d_lidar[j, 3:6])
+                anno["location"].append(box3d_lidar[j, :3])
+                anno["rotation_y"].append(box3d_lidar[j, 6])
+
+            anno["name"].append(class_names[int(label_preds[j])])
+            anno["truncated"].append(0.0)
+            anno["occluded"].append(0)
+            anno["score"].append(scores[j])
+
+            num_example += 1
+        if num_example != 0:
+            anno = {n: np.stack(v) for n, v in anno.items()}
+            annos.append(anno)
+        else:
+            annos.append(kitti.empty_result_anno())
+        num_example = annos[-1]["name"].shape[0]
+        annos[-1]["metadata"] = preds_dict["metadata"]
+    return annos
+
 def helper_tune_target_assigner(config_path, target_rate=None, update_freq=200, update_delta=0.01, num_tune_epoch=5):
     """get information of target assign to tune thresholds in anchor generator.
     """    
