@@ -141,8 +141,8 @@ KittiViewer.prototype = {
                 var dims = response["dt_dims"];
                 var rots = response["dt_rots"];
                 var scores = response["dt_scores"];
-                self.boxes_3d_p2 = response["dt_boxes_3d_p2"];
-                self.logger.message("========= boxes_3d_p2");
+                // self.boxes_3d_p2 = response["dt_boxes_3d_p2"];
+                // self.logger.message("========= boxes_3d_p2");
                 self.dtBboxes = response["dt_bbox"];
                 for (var i = 0; i < self.dtBoxes.length; ++i) {
                     for (var j = self.dtBoxes[i].children.length - 1; j >= 0; j--) {
@@ -154,7 +154,7 @@ KittiViewer.prototype = {
                 }
                 let label_with_score = [];
                 for (var i = 0; i < locs.length; ++i) {
-                    label_with_score.push("score=" + scores[i].toFixed(2).toString());
+                    label_with_score.push("score=" + scores[i].toFixed(2).toString() + ", Height: " + dims[i][0].toFixed(2).toString() + ", Length: " + dims[i][1].toFixed(2).toString()  + ", Width: " + dims[i][2].toFixed(2).toString());
                 }
                 
                 self.dtBoxes = boxEdgeWithLabel(dims, locs, rots, 2, self.dtBoxColor,
@@ -359,7 +359,7 @@ KittiViewer.prototype = {
                 let box_b = self.boxes_3d_p2[i].slice(4);
                 self.logger.message(self.boxes_3d_p2[i].length + "coord: " + box_a[0][0]*wratio);
                 ctx.beginPath();
-                let yoffset = 10;
+                let yoffset = 0;
                 ctx.moveTo(box_a[0][0] * wratio, (box_a[0][1]+yoffset) * hratio);
                 for (var j = 0; j < box_a.length; ++j) {
                     let next = (j + 1) % box_a.length;

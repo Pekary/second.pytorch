@@ -216,7 +216,8 @@ def inference_by_idx():
 
     # get 3d bbox in image
     tmp_box3d = np.copy(box3d)
-    tmp_box3d[:, 2] -=  tmp_box3d[:, 5] / 2
+    tmp_box3d[:, 2] -=  tmp_box3d[:, 5] / 2  # x y z w l h
+    ## tmp_box3d[:, 0] += tmp_box3d[:, 3] / 2  # 1lr 0fb
 
     calib = example["calib"]
     # print(type(calib), calib.keys())
